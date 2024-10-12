@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Label Print PWA</title>
+    <!-- link rel="stylesheet" href="styles.css" -->
+    <!-- link rel="manifest" href="manifest.json" -->
+  <style>
+    body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 50px;
+    background-color: #f5f5f5;
+}
+
+textarea {
+    width: 80%;
+    height: 150px;
+    margin-bottom: 20px;
+    padding: 10px;
+    font-size: 16px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+  </style>
+</head>
+<body>
+    <h1>Label Print App</h1>
+    <textarea id="labelContent" placeholder="Enter label content here">a</textarea>
+    <button id="connectButton">Connect to Printer</button>
+    <button id="printButton" disabled>Print Label</button>
+
+    <!-- script src="app.js"></script -->
+  <script>
+let printerCharacteristic = null;
+const uuid = "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
+      uuidc = "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f";
+// Register Service Worker
+// if ('serviceWorker' in navigator) {
+//     navigator.serviceWorker.register('/service-worker.js')
+//     .then(() => {
+//         console.log('Service Worker Registered');
+//     })
+//     .catch(error => {
+//         console.error('Service Worker Registration Failed:', error);
+//     });
+// }
+printerCharacteristic = ""
+    // Service UUID: e7810a71-73ae-499d-8c15-faa9aef0c3f2
+    // Characteristic UUID: bef8d6c9-9c21-4c9e-b632-bd58c1009f9f
+    
+// Connect to Printer
+document.getElementById('connectButton').addEventListener('click', async () => {
+    try {
+    // Request Bluetooth device
+    const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices:["e7810a71-73ae-499d-8c15-faa9aef0c3f2"]
+    });
+
+    if (!device) {
+        alert("No device selected.");
+        return;
+    }
+
+    if (!device.gatt) {
+        alert("GATT not available on this device.");
+        return;
+    }
+
+    // Connect to GATT server
+    const server = await device.gatt.connect();
+    console.log("Connected to GATT server:", server);
+      
+      
+    // Get all primary services
+    const services = await server.getPrimaryServices();
+    for (const service of services) {
+        console.log(`Service UUID: ${service.uuid}`);
+
+        // Get characteristics for each service
+         printerCharacteristic = await service.getCharacteristics();
+        for (const characteristic of printerCharacteristic) {
+            console.log(`Characteristic UUID: ${characteristic.uuid}`);
+        }
+    }
+    console.log(printerCharacteristic)  
+    document.getElementById('printButton').disabled = false;  
+
+} catch (error) {
+    alert('Error: ' + error);
+    console.error('Error:', error);
+}
+
+});
+
+// Print Label
+document.getElementById('printButton').addEventListener('click', async () => {
+    const content = document.getElementById('labelContent').value;
+    if (!content) {
+        alert('Please enter label content.');
+        return;
+    }
+
+    if (!printerCharacteristic) {
+        alert('Printer not connected.');
+        return;
+    }
+
+ 
+  try {
+        // Format content with ESC/POS commands if needed     
+        const encoder = new TextEncoder();
+        const data = encoder.encode(content);
+
+   // Select character code table (0 for default)
+   const selectCodeTable = new Uint8Array([0x1B, 0x74, 0x00]); // ESC t 0
+    // Select international character set (e.g., USA)
+    const selectCharset = new Uint8Array([0x1B, 0x52, 0x00]); // ESC R 0
+
+    // Send commands to the printer
+      //  await printerCharacteristic[1].writeValueWithResponse(new Uint8Array([0x1B,0x33,255]));
+      //  await printerCharacteristic[1].writeValueWithResponse(new Uint8Array([0x7B]));
+      //  await printerCharacteristic[1].writeValueWithResponse(new Uint8Array([0x1B,0x2D,1]));
+console.log(TextToPrinterEncoding("Não voc^}E ü!"))
+
+let unicodeString = '\u00C7\u00FC\u00E9\u00E2\u00E4\u00E0\u00E5\u00E7\u00EA\u00EB\u00E8\u00EF\u00EE\u00EC\u00C4\u00C5';
+
+// Convert the Unicode string to a Uint8Array
+let byteArray = new TextEncoder().encode(unicodeString);
+
+await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 82, 12]));        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 116, 13]));        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27 ,64,]));        
+        await printerCharacteristic[1].writeValueWithResponse(byteArray);        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 33, 0, ]));        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 77, 0]));        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 82, 4 ,91, 123, 10, 13]));        
+    
+        await printerCharacteristic[1].writeValueWithResponse(TextToPrinterEncoding("Não você ü!"));
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([28, 48]));        
+        await printerCharacteristic[1].writeValueWithResponse(TextToPrinterEncoding("Não você ü!"));
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([28, 46]));         
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 97,2]));         //align right
+        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,256]));        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([199,252,233,226,228,224,229,231,234,235,232,239,238,236,196,197,201,230,198,244,246,242,251,249,255,214,220,248,163,216,215,402,225,237,243,250,241,209,170,186,191,174,172,189,188,161,171,187,9617,9618,9619,9474,9508,193,194,192,169,9571,9553,9559,9565,162,165,9488,9492,9524,9516,9500,9472,9532,227,195,9562,9556,9577,9574,9568,9552,9580,164,240,208,202,203,200,305,205,206,207,9496,9484,9608,9604,166,204,9600,211,223,212,210,245,213,181,254,222,218,219,217,253,221,175,180,173,177,8215,190,182,167,247,184,176,168,183,185,179,178,9632,160]));           
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27,116,11])); 
+        await printerCharacteristic[1].writeValueWithResponse( encoder.encode("vocÊ ai não!"));        
+        await printerCharacteristic[1].writeValueWithResponse(TextToPrinterEncoding("Não você ü!"));
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 82, 12]));        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 116, 13]));        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27 ,64,]));        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 33, 0, ]));        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 77, 0]));        
+        await printerCharacteristic[1].writeValueWithResponse( new Uint8Array([27, 82, 4 ,91, 123, 10, 13]));        
+    
+        alert('Label sent to printer!');
+    } catch (error) {
+        console.error('Print failed:', error);
+        alert('Failed to print label.');
+    }
+});
+
+function getBytesISO88591(str) {
+    const bytes = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+        bytes[i] = str.charCodeAt(i) & 0xFF; // Get the byte value
+    }
+    return bytes;
+}
+
+function convertTextToPrinterEncoding(text) {
+    let converted = '';
+    encodingArray = [199,252,233,226,228,224,229,231,234,235,232,239,238,236,196,197,201,230,198,244,246,242,251,249,255,214,220,248,163,216,215,402,225,237,243,250,241,209,170,186,191,174,172,189,188,161,171,187,9617,9618,9619,9474,9508,193,194,192,169,9571,9553,9559,9565,162,165,9488,9492,9524,9516,9500,9472,9532,
+227,195,9562,9556,9577,9574,9568,9552,9580,164,240,208,202,203,200,305,205,206,207,9496,9484,9608,9604,166,204,9600,211,223,212,210,245,213,181,254,222,218,219,217,253,221,175,180,173,177,8215,190,182,167,247,184,176,168,183,185,179,178,9632,160]
+
+    for (let char of text) {
+        const codePoint = char.codePointAt(0);
+        if (codePoint < 128) {
+            // ASCII characters remain the same
+            converted += char;
+        } else {
+            // Find the corresponding code page character
+            const index = encodingArray.indexOf(codePoint);
+            if (index !== -1) {
+                converted += String.fromCharCode(128 + index);
+            } else {
+                // Use '?' for unmapped characters
+                converted += '?';
+            }
+        }
+    }
+
+    return converted;
+}
+
+function TextToPrinterEncoding(text) {
+    const byteArray = new Uint8Array(text.length);
+    const encodingArray = [199,252,233,226,228,224,229,231,234,235,232,239,238,236,196,197,201,230,198,244,246,242,251,249,255,214,220,248,163,216,215,402,225,237,243,250,241,209,170,186,191,174,172,189,188,161,171,187,9617,9618,9619,9474,9508,193,194,192,169,9571,9553,9559,9565,162,165,9488,9492,9524,9516,9500,9472,9532,227,195,9562,9556,9577,9574,9568,9552,9580,164,240,208,202,203,200,305,205,206,207,9496,9484,9608,9604,166,204,9600,211,223,212,210,245,213,181,254,222,218,219,217,253,221,175,180,173,177,8215,190,182,167,247,184,176,168,183,185,179,178,9632,160];
+    for (let i = 0; i < text.length; i++) {
+        
+        byteArray[i] = text.codePointAt(i)
+        continue;
+        const char = text[i];
+        const codePoint = char.codePointAt(0);
+
+        if (codePoint < 128) {
+            // For ASCII characters (0-127), directly use the char code
+            byteArray[i] = codePoint;
+        } else {
+            // Find the corresponding code page character
+            const index = encodingArray.indexOf(codePoint);
+            if (index !== -1) {
+                // If found, store the mapped byte
+                byteArray[i] =  byteArray[i] = 128 + index; // This is the mapped byte value
+            } else {
+                // Use a fallback character code (e.g., '?')
+                byteArray[i] = 0x3F; // ASCII '?' (63 in decimal)
+            }
+        }
+    }
+
+    return byteArray;
+}
+  </script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Label Print App</title>
+    <link rel="stylesheet" href="styles.css" >
+    <link rel="manifest" href="manifest.json" >
+</head>
+<body>
+    <h1>Label Print App</h1>
+    <p id="connectedPrinter">No printer connected.</p>
+    <textarea id="labelContent" placeholder="Enter label content here"></textarea>
+    <br>
+    <button id="connectButton">Connect to Printer</button>
+    <button id="disconnectButton" disabled>Disconnect Printer</button>
+    <button id="printButton" disabled>Print Label</button>
+
+    <script>
+    
+    let printerCharacteristic = null;
+    const uuid = "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
+          uuidc = "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f";
+
+
+    // Function to check if data exists in localStorage
+function checkDataExists(key) {
+    return localStorage.getItem(key)
+    // const data = localStorage.getItem(key);
+    // return data !== null; // Returns true if data exists, false otherwise
+}
+
+// Function to fetch data (you can replace this with your actual data-fetching logic)
+async function fetchData() {
+    // Simulating an API call
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const data = {
+                id: 1,
+                name: "Sample Data",
+                values: [1, 2, 3],
+            };
+            resolve(JSON.stringify(data)); // Convert to JSON string
+        }, 1000); // Simulate network delay
+    });
+}
+
+// Function to store data in localStorage
+function storeData(key, data) {
+    localStorage.setItem(key, data);
+}
+
+
+// // Example usage
+// const dataKey = 'myDataKey';
+// checkAndStoreData(dataKey);
+      
+
+      // Register Service Worker
+// if ('serviceWorker' in navigator) {
+//     navigator.serviceWorker.register('/service-worker.js')
+//     .then(() => {
+//         console.log('Service Worker Registered');
+//     })
+//     .catch(error => {
+//         console.error('Service Worker Registration Failed:', error);
+//     });
+// }
+
+    // Service UUID: e7810a71-73ae-499d-8c15-faa9aef0c3f2
+    // Characteristic UUID: bef8d6c9-9c21-4c9e-b632-bd58c1009f9f
+    
+// Connect to Printer
+document.getElementById('connectButton').addEventListener('click', async () => {
+    try {
+    // Request Bluetooth device
+    // let objLocal = checkDataExists("blueImp");    
+    // if(objLocal) {
+    //     boolConfirm = confirm(`Já há uma impressora registrada de nome ${JSON.parse(objLocal).name}.\n\nCadastrar uma nova?`);
+    //     if(!boolConfirm) {location.href="/printme/"; return;}
+    // }
+
+    //o ID abaixo não existe.. apenas para acessar e pegar os dados de service (UUID) e  Characteristic (UUIDc) e conectar
+    // Salvar também o nome
+//    alert("e7810a71-73ae-499d-8c15-faa9aef0c3f2")
+    const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices:["e7810a71-73ae-499d-8c15-faa9aef0c3f2"]
+    });
+
+    if (!device) {
+        alert("No device selected.");
+        return;
+    }
+
+    if (!device.gatt) {
+        alert("GATT not available on this device.");
+        return;
+    }
+    console.log(device,device.name)
+    // Connect to GATT server
+
+    alert("a"+JSON.stringify(device))
+    const server = await device.gatt.connect();
+    console.log("Connected to GATT server:", server);
+    
+    alert(JSON.stringify(server))
+      
+    // Get all primary services
+    const services = await server.getPrimaryServices();
+    
+    alert(JSON.stringify(services))
+
+    for (const service of services) {
+        console.log(`Service UUID: ${service.uuid}`);
+
+        // Get characteristics for each service
+         printerCharacteristic = await service.getCharacteristics();
+         alert(JSON.stringify(printerCharacteristic))
+         for (const characteristic of printerCharacteristic) {
+
+            console.log(`Characteristic UUID: ${characteristic.uuid}`);
+        }
+    }
+    console.log(printerCharacteristic)  
+
+    storeData("blueImp", JSON.stringify({uuid:services[0].uuid,uuidc:printerCharacteristic[0].uuid,name:device.name}));
+
+    document.getElementById('printButton').disabled = false;  
+
+} catch (error) {
+    alert('Error: ' + error);
+    console.error('Error:', error);
+}
+
+            
+          
+//         const server = await device.gatt.connect();
+//         const service = await server.getPrimaryService(uuid); // Replace with your printer's service UUID
+//         printerCharacteristic = await service.getCharacteristic(uuidc); // Replace with your printer's characteristic UUID
+
+//         console.log('Connected to printer');
+//         alert('Connected to printer');
+       // document.getElementById('printButton').disabled = false;
+    // } catch (error) {
+    //     console.error('Connection failed:', error);
+    //     alert('qFailed to connect to printer.\n'+error);
+    // }
+});
+
+// Print Label
+document.getElementById('printButton').addEventListener('click', async () => {
+    const content = document.getElementById('labelContent').value;
+    if (!content) {
+        alert('Please enter label content.');
+        return;
+    }
+
+    if (!printerCharacteristic) {
+        alert('Printer not connected.');
+        return;
+    }
+
+ 
+  try {
+        // Format content with ESC/POS commands if needed
+      
+     
+        const encoder = new TextEncoder();
+        const data = encoder.encode(content + '\n');
+
+        await printerCharacteristic[0].writeValueWithResponse(data);
+        alert('Label sent to printer!');
+    } catch (error) {
+        console.error('Print failed:', error);
+        alert('Failed to print label.');
+    }
+});
+
+    </script>
+</body>
+</html>

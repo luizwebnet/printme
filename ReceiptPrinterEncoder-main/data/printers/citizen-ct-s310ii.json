@@ -1,0 +1,49 @@
+{
+    "vendor": "Citizen",
+    "model": "CT-S310II",
+    
+    "media": {
+        "dpi": 203,
+        "width": 80
+    },
+
+    "capabilities": {
+        "language": "esc-pos",
+        "codepages": "citizen",
+        
+        "fonts": {
+            "A": {
+                "size": "12x24",
+                "columns": 48
+            },
+            "B": {
+                "size": "9x24",
+                "columns": 64
+            },
+            "C": {
+                "size": "8x16",
+                "columns": 72
+            }
+        },
+
+        "barcodes": {
+            "supported": true,
+            "symbologies": [
+                "upca", "upce", "ean13", "ean8", "code39", "itf", "codabar", "code93", 
+                "code128", "gs1-databar-omni", "gs1-databar-truncated", 
+                "gs1-databar-limited", "gs1-databar-expanded"
+            ]
+        },
+        "qrcode": {
+            "supported": true,
+            "models": ["1", "2"]
+        },
+        "pdf417": {
+            "supported": true
+        },
+        
+        "cutter": {
+            "feed": 3
+        }
+    }
+}
