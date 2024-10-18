@@ -1,4 +1,4 @@
-const CACHE_NAME = 'label-print-app-cache-v1';
+const CACHE_NAME = 'label-print-app-cache-v2';
 const urlsToCache = [
     '/printme/',
     '/printme/index.html',
@@ -6,7 +6,8 @@ const urlsToCache = [
     '/printme/app.js',
     '/printme/manifest.json',
     '/printme/icons/icon-192.png',
-    '/printme/icons/icon-512.png'
+    '/printme/icons/icon-512.png',
+    '/printme/icons/img.png',
 ];
 
 self.addEventListener('install', event => {

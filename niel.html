@@ -101,11 +101,9 @@
             console.log(ReceiptPrinterEncoder.printerModels)
 
             let img = new Image();
-            img.src = 'icons/icon-192.png';
+            img.src = 'https://www.mengaoemtemporeal.com.br/printme/icons/onimMarcaBaixa.png';
 
-            await new Promise((r) => {
-                img.onload = () => r(true);        
-            })
+            await new Promise((r) => img.onload = () => r(true) )
 
             const MAX_WIDTH = 400; // Maximum width in pixels (adjust for your printer)
 
@@ -137,16 +135,14 @@
                     
             let data = encoder                                
                 .initialize()
-                .pulse(0,1000,500)
+                // .image(img,376,240)
+                // .image(img,376,240)
+                // .image(img,376,240)
+                // .image(img,376,240)
+               // .pulse(0,1000,500)
                 .image(...getMe)
-                // .raw("0x21","0x55","0x31","0x53","0x45","0x54","0x4C","0x50","0x35","0x32","0x32","0x34",utf8Bytes)                
-                // .text('cp437 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
-                // //.raw("!","U1","SETLP","5","2","24",utf8Bytes)
-                // .raw([0x1B, 0x1C, 0x2E ])
-                // .raw([0x1B, 0x74, 0x03])
-                // .raw([0x1B, 0x52, 0x0C])
                  .newline()
-                 .pulse()
+             //    .pulse()
                 // .text('cp437 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
                 // .newline()
                 // .raw(cpclData.split(" ").join(","))

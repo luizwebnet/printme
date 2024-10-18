@@ -6,15 +6,324 @@
     <link rel="stylesheet" href="styles.css" >
     <link rel="manifest" href="manifest.json" >
 </head>
-<body>
-    <h1>Label Print App</h1>
+<body id="v">
+    <p>  <img id="imgPrint" src="icons/img.png"/> </p>
+    <button id="connectButton">Imprimir</button>
+    <textarea id="labelContent" placeholder="Enter label content here" style="display:none"></textarea>
+    <button id="printButton" style="display:none">Disconnect Printer</button>
+    <img id="resultImage" style="display:none" />
+    <!-- <h1>Label Print App</h1>
     <p id="connectedPrinter">No printer connected.</p>
     <textarea id="labelContent" placeholder="Enter label content here"></textarea>
     <br>
     <button id="connectButton">Connect to Printer</button>
-    <button id="disconnectButton" disabled>Disconnect Printer</button>
+   
     <button id="printButton" disabled>Print Label</button>
+    <p>
+        <img id="resultImage" />
+    </p> -->
+    <script src='dist/webbluetooth-receipt-printer.umd.js'></script>
+    <script src='dist/receipt-printer-status.umd.js'></script>
+    <script src='dist/receipt-printer-encoder.umd.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    <script src="app.js"> </script>
-</body>
+    
+    <script>
+
+        navigator.permissions.query({ name: 'clipboard-read' }).then(permissionStatus => {
+            console.log('Permission state is:', permissionStatus.state);
+            // permissionStatus.state can be 'granted', 'denied', or 'prompt'
+        });
+
+    
+        const receiptPrinter = new WebBluetoothReceiptPrinter();
+        let printerStatus = "",
+            printerLanguage = "",
+            printerCodepageMapping = "",
+            getDevice = storeData("blueNew");
+
+        document.getElementById('connectButton').addEventListener('click', async () => {            
+            try{
+                console.log(getDevice);
+                //(getDevice !== null) ? (receiptPrinter.reconnect(JSON.parse(getDevice))) : 
+                await receiptPrinter.connect();
+            }catch(err){
+                alert("Tivemos um problema para conectar a impressora.\nVamos recarregar a página e tentar de novo.")
+                location.reload();
+            }
+        })
+
+        receiptPrinter.addEventListener('connected', async device => {
+
+            if (navigator.clipboard) {
+                let getClip = await navigator.clipboard.readText();
+                console.log(getClip);
+                (getClip !== null && getClip !== undefined) ? document.getElementById("labelContent").innerHTML = getClip : alert("Não foi possível capturar o conteúdo.")
+            }else{
+                alert("Não foi possível capturar o conteúdo.")
+            }
+            
+            
+            console.log(`Connected to ${device.name} (#${device.id})`);
+
+            printerLanguage = device.language;
+            printerCodepageMapping = device.codepageMapping;
+
+            printerStatus = new ReceiptPrinterStatus({
+                printer:    receiptPrinter,
+                language:   device.language
+            });
+
+            printerStatus.addEventListener('connected', async () => {
+    
+                let serialnumber = await printerStatus.query('serialnumber');
+                console.log('Serialnumber', serialnumber);
+                
+
+                let firmware = await printerStatus.query('firmware');
+                console.log('Firmware version', firmware);
+
+                alert(serialnumber+"\n"+firmware)
+            });
+
+            document.getElementById('printButton').disabled = false; 
+            document.getElementById('printButton').dispatchEvent(new Event('click'))
+            
+            /* Store device for reconnecting */
+            if(JSON.parse(getDevice)?.id != device.id) storeData("blueNew", JSON.stringify(device));                        
+                        
+        });
+
+     
+        document.getElementById('printButton').addEventListener('click', async () => {
+           
+            let encoder = new ReceiptPrinterEncoder({
+                printerModel: 'pos-5890',
+                language:  printerLanguage,
+                codepageMapping: "pos-5890"
+                //codepageMapping: printerCodepageMapping
+            });
+            console.log(ReceiptPrinterEncoder.printerModels)
+
+            let img = new Image();
+            img.src = 'https://www.mengaoemtemporeal.com.br/printme/icons/onimMarcaBaixa.png';
+
+            await new Promise((r) => img.onload = () => r(true) )
+
+            const MAX_WIDTH = 400; // Maximum width in pixels (adjust for your printer)
+
+            // Original image dimensions
+            let originalWidth = img.width;
+            let originalHeight = img.height;
+
+            // Calculate the aspect ratio
+            let aspectRatio = originalWidth / originalHeight;
+
+            // Resize the image if the width exceeds the maximum allowed width
+            let newWidth = originalWidth;
+            let newHeight = originalHeight;
+
+            if (originalWidth > MAX_WIDTH) {
+                newWidth = MAX_WIDTH;
+                newHeight = newWidth / aspectRatio;  // Maintain the aspect ratio
+            }
+
+            // Ensure the width and height are multiples of 8
+            newWidth = roundToMultipleOf8(newWidth);
+            newHeight = roundToMultipleOf8(newHeight);
+            
+            imgDiv = await captureDivAsImageAndPrint("v")
+
+            
+            //let getMe = textToImage("cp437 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog cp437 VocÊ ç sabe que ei anx k Yü então assim #!$%")
+            let getMe = textToImage(document.getElementById("labelContent").innerHTML)
+            let data = encoder                                
+                .initialize()
+                // .image(img,376,240)
+                // .image(img,376,240)
+                // .image(img,376,240)
+                // .image(img,376,240)
+               // .pulse(0,1000,500)
+               .align('center')
+                .image(document.getElementById("imgPrint"),roundToMultipleOf8(document.getElementById("imgPrint").naturalWidth)+80,roundToMultipleOf8(document.getElementById("imgPrint").naturalHeight+80))
+                 .newline()
+             //    .pulse()
+                // .text('cp437 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                // .newline()
+                // .raw(cpclData.split(" ").join(","))
+                // .raw(oto)
+                //  .raw([...cpclCommand,0x1C, 0x26,encod])                
+                //  .text('cp437 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                //  .raw([...cpclCommand,0x1B, 0x28, 0x42, 0x02, 0x00,encod])
+                //  .text('cp850 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                // .raw([0x1C, 0x26,encod])                
+                // .text('cp437 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                // .raw([0x1B, 0x74, 0x02,encod])
+                // .text('cp437 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                // .raw([0x1B, 0x28, 0x42, 0x02, 0x00,encod])
+                // .text('cp850 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                // .codepage('iso8859-1')
+                // .text('cp860 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                // .codepage('cp863')
+                // .text('cp863 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                // .codepage('cp865')
+                // .text('cp865 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+               // .codepage('cp3847')
+               // .text('cp3847 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                //.codepage('cp851') - not support
+                //.text('cp851 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                //.codepage('cp858')
+                //.text('cp858 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog')
+                //.newline()
+                // .qrcode('https://nielsleenheer.com')
+                // .newline()
+                // .align('center')
+                // .image(img, newWidth, newHeight)
+                // .newline()
+                // .align('center')
+                // .image(imgDiv[0],imgDiv[1],imgDiv[2])
+                // .newline()
+                // .newline()
+                //.newline()        
+                .encode();
+
+            /* Print the receipt */
+                receiptPrinter.print(data);
+           
+        });
+
+        function encodeISO88591(text) {
+            const buffer = [];
+            for (let i = 0; i < text.length; i++) {
+                const charCode = text.charCodeAt(i);
+                // ISO-8859-1 supports characters in the range 0-255
+                if (charCode <= 0xFF) {
+                    buffer.push(charCode);
+                } else {
+                    buffer.push(0x3F); // Replace unsupported characters with '?'
+                }
+            }
+            return new Uint8Array(buffer);
+        }
+
+        function replaceNonASCII(text) {
+            return text.split('').map(char => {
+                const code = char.charCodeAt(0);
+                return (code < 128) ? code : 63; // Replace non-ASCII with '?'
+            });
+        }
+        
+        function storeData(key, data) {
+            return !(data) ? localStorage.getItem(key) : localStorage.setItem(key, data);
+            //localStorage.getItem(key);
+        }
+
+        // Capture a div's content and process it as an image
+        async function captureDivAsImageAndPrint(divId) {
+            const divElement = document.getElementById(divId);
+            
+            if (!divElement) {
+                console.error('Div not found');
+                return;
+            }
+
+            // Use html2canvas to capture the content of the div as an image
+            const canvasi = await html2canvas(divElement);
+            
+            // Get the image from the canvas
+            const img = new Image();
+            img.src = canvasi.toDataURL('image/png');
+            
+            const MAX_WIDTH = 400; // Maximum width in pixels (adjust for your printer)
+
+            // Wait for the image to load
+            await new Promise((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject('Failed to load captured image');
+            });
+
+            // Original image dimensions
+            let originalWidth = img.width;
+            let originalHeight = img.height;
+
+            // Calculate the aspect ratio
+            let aspectRatio = originalWidth / originalHeight;
+
+            // Resize the image if the width exceeds the maximum allowed width
+            let newWidth = originalWidth;
+            let newHeight = originalHeight;
+
+            if (originalWidth > MAX_WIDTH) {
+                newWidth = MAX_WIDTH;
+                newHeight = newWidth / aspectRatio;  // Maintain the aspect ratio
+            }
+
+            // Ensure the width and height are multiples of 8
+            newWidth = roundToMultipleOf8(newWidth);
+            newHeight = roundToMultipleOf8(newHeight);
+
+            return [img,newWidth,newHeight]
+            //console.log(`Resized image dimensions: Width = ${newWidth}px, Height = ${newHeight}px`);
+
+            // Now you can send `img.src`, `newWidth`, and `newHeight` for printing to the thermal printer
+            // Use the same process as in your previous example.
+        }
+
+        // Function to round to the nearest multiple of 8
+        function roundToMultipleOf8(value) {
+            return Math.floor(value / 8) * 8;
+        }
+
+const textToImage = (text) => {
+    // Create a canvas element in memory
+    const canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d');
+
+    
+    // Define your font size and family    
+    let fontSize = 28;
+    ctx.font = fontSize+'px Arial'; // Change as needed
+    const lineHeight = roundToMultipleOf8(40) // Space between lines
+    const maxWidth = roundToMultipleOf8(400); // 55 cm in pixels (assuming 96 DPI)
+ 
+
+    // Calcular o tamanho da imagem
+    const lines = [];
+    const words = text.split(' ');
+
+    let currentLine = '';
+    for (const word of words) {
+        if (ctx.measureText(currentLine + word + ' ').width > maxWidth && currentLine.length > 0) {
+            lines.push(currentLine.trim());
+            currentLine = word + ' ';            
+        } else {
+            currentLine += word + ' ';
+        }
+    }
+    lines.push(currentLine.trim()); // Push the last line
+
+    let ww = roundToMultipleOf8(maxWidth),
+        hh = roundToMultipleOf8(lines.length * lineHeight) + 8 //adjust for last lin e
+	
+    canvas.remove()
+	const newCanvas = document.createElement('canvas');
+    newCanvas.width = ww 
+    newCanvas.height = hh  //adjust for last lin e
+	
+    ctx = newCanvas.getContext('2d'); // New context
+    ctx.font = fontSize+'px Arial';
+	ctx.clearRect(0, 0, ww, hh) // Clear the canvas
+
+	lines.forEach((line, index) => {
+        ctx.fillText(line, 0, (index+1)  * lineHeight);
+    });
+
+    const image = document.getElementById('resultImage');
+    image.src = newCanvas.toDataURL('image/png');
+    // Convert canvas to image
+    return [ctx.getImageData(0, 0, ww, hh),ww,hh]; // Export canvas as PNG image
+};
+    
+    </script>
+    </body>
 </html>
