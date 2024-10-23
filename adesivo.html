@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Label Print App</title>
+    <link rel="stylesheet" href="styles.css" >    
+</head>
+<body id="v">
+    <h1>Label Print App</h1>
+    <p id="connectedPrinter">No printer connected.</p>
+    <textarea id="labelContent" placeholder="Enter label content here"></textarea>
+    <br>
+    <button id="connectButton">Connect to Printer</button>
+    <button id="disconnectButton" disabled>Disconnect Printer</button>
+    <button id="printButton" disabled>Print Label</button>
+    <p>
+        <img id="resultImage"  />
+        <img id="imageprint" src="printqrcode.png"  />
+    </p>
+    <canvas id="canvaslabel"> </canvas>
+    <script src='dist/webbluetooth-receipt-printer.umd.js'></script>
+    <script src='dist/receipt-printer-status.umd.js'></script>
+    <script src='dist/receipt-printer-encoder.umd.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    
+    <script>
+    
+        const receiptPrinter = new WebBluetoothReceiptPrinter();
+        let printerStatus = "",
+            printerLanguage = "",
+            printerCodepageMapping = "",
+            getDevice = storeData("blueNew");
+
+        document.getElementById('connectButton').addEventListener('click', async () => {            
+            console.log(getDevice);
+             //(getDevice !== null) ? (receiptPrinter.reconnect(JSON.parse(getDevice))) : 
+             receiptPrinter.connect();
+        })
+
+        receiptPrinter.addEventListener('connected', device => {
+         
+            console.log(`Connected to ${device.name} (#${device.id})`);
+
+            printerLanguage = device.language;
+            printerCodepageMapping = device.codepageMapping;
+
+            printerStatus = new ReceiptPrinterStatus({
+                printer:    receiptPrinter,
+                language:   device.language
+            });
+
+            printerStatus.addEventListener('connected', async () => {
+    
+                let serialnumber = await printerStatus.query('serialnumber');
+                console.log('Serialnumber', serialnumber);
+                
+
+                let firmware = await printerStatus.query('firmware');
+                console.log('Firmware version', firmware);
+
+                alert(serialnumber+"\n"+firmware)
+            });
+
+            document.getElementById('printButton').disabled = false;      
+
+            document.getElementById('printButton').dispatchEvent(new Event("click"));
+
+            /* Store device for reconnecting */
+            if(JSON.parse(getDevice)?.id != device.id) storeData("blueNew", JSON.stringify(device));                        
+                        
+        });
+
+     
+        document.getElementById('printButton').addEventListener('click', async () => {
+           console.log(printerLanguage+"\n"+printerCodepageMapping)
+            let encoder = new ReceiptPrinterEncoder({
+                //printerModel: 'pos-5890',
+                language:  printerLanguage,
+                //codepageMapping: "pos-5890"
+                codepageMapping: printerCodepageMapping
+            });
+            console.log(ReceiptPrinterEncoder.printerModels)
+
+            let img = new Image();
+            img.src = 'icons/icon-192.png';
+
+            await new Promise((r) => {
+                img.onload = () => r(true);        
+            })
+
+            const MAX_WIDTH = 400; // Maximum width in pixels (adjust for your printer)
+
+            // Original image dimensions
+            let originalWidth = img.width;
+            let originalHeight = img.height;
+
+            // Calculate the aspect ratio
+            let aspectRatio = originalWidth / originalHeight;
+
+            // Resize the image if the width exceeds the maximum allowed width
+            let newWidth = originalWidth;
+            let newHeight = originalHeight;
+
+            if (originalWidth > MAX_WIDTH) {
+                newWidth = MAX_WIDTH;
+                newHeight = newWidth / aspectRatio;  // Maintain the aspect ratio
+            }
+
+            // Ensure the width and height are multiples of 8
+            newWidth = roundToMultipleOf8(newWidth);
+            newHeight = roundToMultipleOf8(newHeight);
+            
+            imgDiv = await captureDivAsImageAndPrint("v")
+
+            let getMe = textToImage("cp437 VocÊ ç sabe que ei anx k Yü então assim #!$%  aap The quick brown fox jumps over the lazy dog cp437 VocÊ ç sabe que ei anx k Yü então assim #!$%")
+            
+            console.log(...getMe)
+
+            let opa = new Image();
+            opa.src = 'labelPrint.png';            
+            //opa.src = 'qrcodeNewSize.png';
+
+            await new Promise((r) => opa.onload = () => r(true) )
+
+            //let getAimage = [document.getElementById("canvaslabel"),344,224]
+            //passar em mm
+            let getAimage = await createLabelImage([48,29.5,3.1],opa,3) 
+            console.log(getAimage)
+            let data = encoder                                
+                .initialize()                       
+                .image(...getAimage)
+                .newline()                                
+                .encode();
+
+            /* Print the receipt */
+                receiptPrinter.print(data);
+           
+        });
+        
+            
+        async function createLabelImage(size,imageSrc,repeatCount) {
+            //size is mm. the print is 203 dpi. 1mm = 8px
+            const imgWidth = Math.floor(size[0] * 8);
+            const imgHeight = size[1] * 8;
+            const gap = size[2] * 8 ;
+            
+            // Calculate total height
+            let totalHeight = (imgHeight + gap) * repeatCount - gap; // subtract the last gap
+            totalHeight += (8 - (totalHeight % 8)) % 8; // round to nearest multiple of 8
+
+            const canvas = document.createElement('canvas');
+            canvas.width = imgWidth;
+            canvas.height = totalHeight;
+            const ctx = canvas.getContext('2d');
+
+            const img = new Image();
+                                                   
+            for (let i = 0; i < repeatCount; i++)  ctx.drawImage(imageSrc, 0, i * (imgHeight + gap),imgWidth,imgHeight);
+
+            img.src = canvas.toDataURL("image/png");       
+            document.getElementById('imageprint').src = canvas.toDataURL("image/png");       
+             
+            await new Promise((r) => img.onload = () => r(true) )
+            
+            return [img,imgWidth,totalHeight]
+        }
+    
+        function storeData(key, data) {
+            return !(data) ? localStorage.getItem(key) : localStorage.setItem(key, data);
+            //localStorage.getItem(key);
+        }
+
+        // Capture a div's content and process it as an image
+        async function captureDivAsImageAndPrint(divId) {
+            const divElement = document.getElementById(divId);
+            
+            if (!divElement) {
+                console.error('Div not found');
+                return;
+            }
+
+            // Use html2canvas to capture the content of the div as an image
+            const canvas = await html2canvas(divElement);
+            
+            // Get the image from the canvas
+            const img = new Image();
+            img.src = canvas.toDataURL('image/png');
+            
+            const MAX_WIDTH = 400; // Maximum width in pixels (adjust for your printer)
+
+            // Wait for the image to load
+            await new Promise((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject('Failed to load captured image');
+            });
+
+            // Original image dimensions
+            let originalWidth = img.width;
+            let originalHeight = img.height;
+
+            // Calculate the aspect ratio
+            let aspectRatio = originalWidth / originalHeight;
+
+            // Resize the image if the width exceeds the maximum allowed width
+            let newWidth = originalWidth;
+            let newHeight = originalHeight;
+
+            if (originalWidth > MAX_WIDTH) {
+                newWidth = MAX_WIDTH;
+                newHeight = newWidth / aspectRatio;  // Maintain the aspect ratio
+            }
+
+            // Ensure the width and height are multiples of 8
+            newWidth = roundToMultipleOf8(newWidth);
+            newHeight = roundToMultipleOf8(newHeight);
+
+            return [img,newWidth,newHeight]
+            //console.log(`Resized image dimensions: Width = ${newWidth}px, Height = ${newHeight}px`);
+
+            // Now you can send `img.src`, `newWidth`, and `newHeight` for printing to the thermal printer
+            // Use the same process as in your previous example.
+        }
+
+        // Function to round to the nearest multiple of 8
+        function roundToMultipleOf8(value) { return Math.floor(value / 8) * 8;}
+
+        const textToImage = (text) => {
+            // Create a canvas element in memory
+            const canvas = document.createElement('canvas');
+            let ctx = canvas.getContext('2d');
+
+            let fontSize = 28;
+            ctx.font = fontSize+'px Arial'; // Change as needed
+            const lineHeight = roundToMultipleOf8(40) // Space between lines
+            const maxWidth = roundToMultipleOf8(400); // 55 cm in pixels (assuming 96 DPI)
+        
+            // Calcular o tamanho da imagem
+            const lines = [];
+            const words = text.split(' ');
+
+            let currentLine = '';
+            for (const word of words) {
+                if (ctx.measureText(currentLine + word + ' ').width > maxWidth && currentLine.length > 0) {
+                    lines.push(currentLine.trim());
+                    currentLine = word + ' ';            
+                } else {
+                    currentLine += word + ' ';
+                }
+            }
+            lines.push(currentLine.trim()); // Push the last line
+
+            let ww = roundToMultipleOf8(maxWidth),
+                hh = roundToMultipleOf8(lines.length * lineHeight) + 8 //adjust for last lin e
+            
+            canvas.remove()
+            const newCanvas = document.createElement('canvas');
+            newCanvas.width = ww 
+            newCanvas.height = hh  //adjust for last lin e
+            
+            ctx = newCanvas.getContext('2d'); // New context
+            ctx.font = fontSize+'px Arial';
+            ctx.clearRect(0, 0, ww, hh) // Clear the canvas
+
+            lines.forEach((line, index) => {
+                ctx.fillText(line, 0, (index+1)  * lineHeight);
+            });
+
+            const image = document.getElementById('resultImage');
+            image.src = newCanvas.toDataURL('image/png');
+            // Convert canvas to image
+            return [ctx.getImageData(0, 0, ww, hh),ww,hh]; // Export canvas as PNG image
+        };
+    
+    </script>
+    </body>
+</html>
