@@ -15,7 +15,7 @@
     <button id="printButton" disabled>Print Label</button>
     <p>
         <img id="resultImage"  />
-        <img id="imageprint" src="printqrcode.png"  />
+        <img id="imageprint" src="oi.jpg"  />
     </p>
     <canvas id="canvaslabel"> </canvas>
     <script src='dist/webbluetooth-receipt-printer.umd.js'></script>
@@ -118,7 +118,7 @@
             console.log(...getMe)
 
             let opa = new Image();
-            opa.src = 'labelPrint.png';            
+            opa.src = 'bolinho_sabores.png';            
             //opa.src = 'qrcodeNewSize.png';
 
             await new Promise((r) => opa.onload = () => r(true) )
@@ -127,10 +127,10 @@
             //passar em mm
             let getAimage = await createLabelImage([48,29.5,3.1],opa,3) 
             console.log(getAimage)
-            let data = encoder                                
-                .initialize()                       
-                .image(...getAimage)
-                .newline()                                
+            let data = encoder 
+                //.raw([ 0x1c, 0x2e ]) 
+                //threshold, bayer, floydsteinberg, atkinson                                                                   
+                .image(...getAimage," threshold")                                            
                 .encode();
 
             /* Print the receipt */
